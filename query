@@ -64,3 +64,42 @@ create view libro_prestado as                                                   
 select li.nombre_libro, l.nombre, li.editorial, li.ISBN
 from lector l  join prestamo p on p.lector = l.id_lector
            join libro li on p.ISBN = li.ISBN
+
+
+create or replace function devolucion_libro (integer)                                                --creacion de funcion para devolucion de libros-
+returns void 
+as 
+$$
+delete from prestamo where id_prestamo=$1
+$$
+language sql;
+
+create table logs (                                                                              --creacion de tabla para almacenar las devoluciones de libros--
+    lector int ,
+    ISBN int ,
+    fecha timestamp
+);
+
+
+create function fuction_trigger_dev () returns trigger                                                     --creacion funcion trigger para poblado de tabla logs--
+as
+$$
+    begin
+         insert into logs values (old.lector, old.ISBN, now());
+         return old;
+    end;
+
+$$
+
+language plpgsql;
+
+create trigger trigger_dev before delete on prestamo for each row                                                      --creacion del trigger--
+execute procedure fuction_trigger_dev ()
+
+create function libros_prestados () returns bigint                                                     --funcion para saber cantidad de libros prestados--
+as
+$$
+    select count(*)
+    from prestamo;
+$$
+language sql;
